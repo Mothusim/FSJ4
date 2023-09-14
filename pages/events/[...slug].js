@@ -1,5 +1,6 @@
+import Head from "next/head"
 import { useRouter } from "next/router"
-import getFilteredEvents from "../../helpers/api-util"
+// import getFilteredEvents from "../../helpers/api-util"
 import EventList from "../../components/event-list"
 import ResultsTitle from '../../components/results-title'
 import { Fragment, useEffect, useState } from "react"
@@ -9,12 +10,16 @@ import useSWR from "swr"
 
 export default function Filtered(){
 
-    const [loadedEvents, setLoadedEvents] = useState()
+    const [loadedEvents, setLoadedEvents] = useState([])
 
     const router = useRouter()
     const filteredData = router.query.slug
 
-    const {data, error} = useSWR('https://event-app-93264-default-rtdb.firebaseio.com/events.json')
+    const fetcher = (...args) => fetch(...args).then(res => res.json())
+
+    const {data, error} = useSWR('https://event-app-93264-default-rtdb.firebaseio.com/events.json', fetcher)
+
+    console.log(data)
 
     useEffect(() => {
 
@@ -39,9 +44,35 @@ export default function Filtered(){
 
     }, [data])
 
+    let pageHeadData = (
+    
+        <Head>
+
+            <title>Filtered Events</title>
+            <meta
+                name='description'
+                content= {`A list of filtered events.`}
+
+            />
+
+        </Head>
+    
+    )
+
     if(!loadedEvents){
 
-        return <p className="center">Loading...</p>
+        return (
+        
+            <Fragment>
+
+                {pageHeadData}
+
+                <p className="center">Loading...</p>
+
+            </Fragment>
+
+        )
+
     }
 
     const filteredYear = filteredData[0]
@@ -50,11 +81,29 @@ export default function Filtered(){
     const numYear = +filteredYear
     const numMonth = +filteredMonth
 
+    pageHeadData = (
+
+        <Head>
+
+            <title>Filtered Events</title>
+            <meta
+                name='description'
+                content= {`All events for ${numMonth}/${numYear}`}
+
+            />
+
+        </Head>
+
+    )
+
+
     if(isNaN(numYear) || isNaN(numMonth) || numYear >2030 || numYear < 2021 || numMonth <1 || numMonth >12 || error){
 
         return (
         
             <Fragment>
+
+                {pageHeadData}
 
                 <ErrorAlert>
                     <p>Invalid filter. Please adjust your values!</p>
@@ -69,7 +118,9 @@ export default function Filtered(){
     }
 
     const filteredEvents = loadedEvents.filter((event) => {
+
         const eventDate = new Date(event.date);
+
         return (
             
             eventDate.getFullYear() === numYear &&
@@ -77,13 +128,15 @@ export default function Filtered(){
         
         )
 
-      });
+    });
 
     if(!filteredEvents || filteredEvents.length === 0){
 
         return (
         
             <Fragment>
+
+                {pageHeadData}
 
                 <ErrorAlert>
                     <p>No events found for the chosen filter!</p>
@@ -101,12 +154,15 @@ export default function Filtered(){
 
         <Fragment>
 
+            {pageHeadData}
+
             <ResultsTitle date = {date}/>
             
             <EventList item={filteredEvents} />
 
         </Fragment>
     )
+
 }
 
 // export async function getServerSideProps(context){
